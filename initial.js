@@ -1,162 +1,219 @@
 (function ($) {
-    $.fn.initial = function (options) {
-        return this.each(function () {
+  $.fn.initial = function (options) {
+    return this.each(function () {
+      var e = $(this);
+      var settings = $.extend({
+        // Default settings
+        name: 'DaMaVaNd',
+        seed: 0,
+        charCount: 1,
+        wordCount: 2,
+        background: {
+          saturation: 0.4, // 0: White
+          brightness: 0.99 // 0: Black
+        },
+        foreground: {
+          saturation: 0.8, // 0: White
+          brightness: 0.6 // 0: Black
+        },
+        height: 100,
+        width: 100,
+        fontSize: 60,
+        fontWeight: 400,
+        fontFamily: 'HelveticaNeue-Light,Helvetica Neue Light,Helvetica Neue,Helvetica, Arial,Lucida Grande, sans-serif',
+        radius: 0,
+        src: null
+      }, options);
 
-            var e = $(this);
-            var settings = $.extend({
-                // Default settings
-                name: 'Name',
-                seed: 0,
-                charCount: 1,
-                wordCount: 2,
-                textColor: '#ffffff',
-                saturation: 0.8,
-                brightness: 0.5,
-                height: 100,
-                width: 100,
-                fontSize: 60,
-                fontWeight: 400,
-                fontFamily: 'HelveticaNeue-Light,Helvetica Neue Light,Helvetica Neue,Helvetica, Arial,Lucida Grande, sans-serif',
-                radius: 0,
-                src: null
+      // overriding from data attributes
+      settings = $.extend(settings, e.data());
 
-            }, options);
+      // It has image url
+      if (settings.src) {
+        e.css({
+          'width': settings.width + 'px',
+          'height': settings.height + 'px',
+          'border-radius': settings.radius + 'px',
+          '-moz-border-radius': settings.radius + 'px'
+        }).attr("src", settings.src);
 
-            // overriding from data attributes
-            settings = $.extend(settings, e.data());
+        return;
+      }
 
-            if (settings.src) {
-              e.css({
-                'width': settings.width+'px',
-                'height': settings.height+'px',
-                'border-radius': settings.radius+'px',
-                '-moz-border-radius': settings.radius+'px'
-              }).attr("src", settings.src);
+      settings.seed = settings.seed > -1 ? settings.seed : 0;
 
-              return;
-            }
+      // var sigma = unique(settings.name) * (settings.seed + 1) * 2 * Math.PI;
+      var sigma = unique(settings.name);
+      // var hue = (360 + (distribute(sigma, settings.name.length) * 360) - 150) % 360;
+      var hue = sigma * 360;
+      // console.log('Hue for ', settings.name, hue);
 
-            settings.name = settings.name || 'DaMaVaNd';
+      var bgColor = {
+        hue: hue,
+        saturation: settings.background.saturation,
+        brightness: settings.background.brightness
+      };
+      settings.bgColor = '#' + hsv2rgb(bgColor.hue, bgColor.saturation, bgColor.brightness);
 
-            // making the text object
-            var c = settings.name.split(" ", settings.wordCount).map(function (str) { return str.substr(0, settings.charCount).toUpperCase(); }).join("");
-            var cobj = $('<text text-anchor="middle"></text>').attr({
-                'y': '50%',
-                'x': '50%',
-                'dy' : '0.35em',
-                'pointer-events':'auto',
-                'fill': settings.textColor,
-                'font-family': settings.fontFamily
-            }).html(c).css({
-                'font-weight': settings.fontWeight,
-                'font-size': settings.fontSize+'px'
-            });
+      var fgColor = {
+        hue: hue,
+        saturation: settings.foreground.saturation, // 0: White
+        brightness: settings.foreground.brightness // 0: Black
+      };
+      settings.fgColor = '#' + hsv2rgb(fgColor.hue, fgColor.saturation, fgColor.brightness);
 
-            function unique(name) {
-              return name.split('').map(function (v, k) { return v.charCodeAt(0) * Math.pow(2, k); }).reduce(function (v1, v2) { return v1 + v2; }) / Math.pow(3, name.length);
-            }
+      // making the text object
+      var c = settings.name.split(" ", settings.wordCount).map(function (str) {
+        return str.substr(0, settings.charCount).toUpperCase();
+      }).join("");
+      var cobj = $('<text text-anchor="middle"></text>').attr({
+        'y': '50%',
+        'x': '50%',
+        'dy': '0.35em',
+        'pointer-events': 'auto',
+        'fill': settings.fgColor,
+        'font-family': settings.fontFamily
+      }).html(c).css({
+        'font-weight': settings.fontWeight,
+        'font-size': settings.fontSize + 'px'
+      });
 
-            function normalize(num) {
-              var border = 3;
+      var svg = $('<svg></svg>').attr({
+        'xmlns': 'http://www.w3.org/2000/svg',
+        'pointer-events': 'none',
+        'width': settings.width,
+        'height': settings.height
+      }).css({
+        'background-color': settings.bgColor,
+        'width': settings.width + 'px',
+        'height': settings.height + 'px',
+        'border-radius': settings.radius + 'px',
+        '-moz-border-radius': settings.radius + 'px'
+      });
 
-              if (num < border) {
-                while (num < border) {
-                  num *= 2 * border;
-                }
-              } else {
-                while (parseInt(num) > border) {
-                  num /= 2 * border;
-                }
-              }
+      svg.append(cobj);
+      // svg.append(group);
+      var svgHtml = window.btoa(unescape(encodeURIComponent($('<div>').append(svg.clone()).html())));
 
-              return num;
-            }
+      e.attr("src", 'data:image/svg+xml;base64,' + svgHtml);
+    });
 
-            function distribute(x, sigma) {
-              return (Math.sin(x * sigma) * Math.cos(x / sigma) * 0.5) + 0.5;
-            }
+    function unique(name) {
+      var weights = name.split('').map(function (v) {
+        var char = v.toUpperCase().charCodeAt(0);
 
-            function hsv2rgb(hue, saturation, brightness) {
-              var chroma = brightness * saturation;
-              var faceColor = { red: 0, green: 0, blue: 0 };
-              var hp = hue * 6;
-              var x = chroma * (1 - Math.abs((hp % 2) - 1));
-              switch (Math.floor(hp)) {
-                case 0:
-                  faceColor.red = chroma;
-                  faceColor.green = x;
-                  break;
+        switch (true) {
+          // Numbers
+          case char > 47 && char < 58:
+            char -= 22;
+            break;
 
-                case 1:
-                  faceColor.red = x;
-                  faceColor.green = chroma;
-                  break;
+          // Uppercase Alphabets
+          case char > 64 && char < 91:
+            char -= 64;
+            break;
 
-                case 2:
-                  faceColor.green = chroma;
-                  faceColor.blue = x;
-                  break;
+          // Lowercase Alphabets
+          case char > 96 && char < 123:
+            char -= 96;
+            break;
 
-                case 3:
-                  faceColor.green = x;
-                  faceColor.blue = chroma;
-                  break;
+          // Ignore all other characters
+          default:
+            char = 0;
+            break;
+        }
 
-                case 4:
-                  faceColor.red = x;
-                  faceColor.green = chroma;
-                  break;
+        return char;
+      });
 
-                case 5:
-                case 6:
-                  faceColor.red = chroma;
-                  faceColor.green = x;
-                  break;
-              }
+      var accumulated = weights.reduce(function (acu, v, k, arr) {
+        if (k == 1) {
+          acu = acu / arr.length;
+        }
 
-              var m = brightness - chroma;
-              var color = {
-                red: Math.floor((faceColor.red + m) * 256),
-                green: Math.floor((faceColor.green + m) * 256),
-                blue: Math.floor((faceColor.blue + m) * 256)
-              };
+        return acu + (v / arr.length);
+      });
 
-              var hex = {
-                red: (color.red < 16 ? '0' : '') + Number(color.red).toString(16),
-                green: (color.green < 16 ? '0' : '') + Number(color.green).toString(16),
-                blue: (color.blue < 16 ? '0' : '') + Number(color.blue).toString(16)
-              };
+      // console.log('Unique result for ', name, ' Weights: ', weights.map(function (v, i) { return name[i] + ': ' + v; }), ' ACCU: ', accumodate, ' Maped: ', accumodate % 36);
 
-              return hex.red + hex.green + hex.blue;
-            }
+      return (accumulated % 36) / 36;
+    }
 
-            var sigma = normalize(unique(settings.name)) * (settings.seed + 1);
+    function normalize(num) {
+      var border = 1;
+      var step = 2;
 
-            var color = {
-              hue: distribute(settings.name.length, sigma),
-              saturation: settings.saturation, // 0: White
-              brightness: settings.brightness // 0: Black
-            };
+      if (num < border) {
+        while (num < border) {
+          num *= step;
+        }
+        num /= step;
+      } else {
+        while (num > border) {
+          num /= step;
+        }
+      }
 
-            var svg = $('<svg></svg>').attr({
-                'xmlns': 'http://www.w3.org/2000/svg',
-                'pointer-events':'none',
-                'width': settings.width,
-                'height': settings.height
-            }).css({
-                'background-color': '#' + hsv2rgb(color.hue, color.saturation, color.brightness),
-                'width': settings.width+'px',
-                'height': settings.height+'px',
-                'border-radius': settings.radius+'px',
-                '-moz-border-radius': settings.radius+'px'
-            });
+      return num;
+    }
 
-            svg.append(cobj);
-           // svg.append(group);
-            var svgHtml = window.btoa(unescape(encodeURIComponent($('<div>').append(svg.clone()).html())));
+    function distribute(x, len) {
+      return (Math.sin(x * 0.7) * Math.cos(x * 0.7)) + 0.5;
+    }
 
-            e.attr("src", 'data:image/svg+xml;base64,' + svgHtml);
-        });
-    };
+    function hsv2rgb(hue, saturation, brightness) {
+      var chroma = brightness * saturation;
+      var faceColor = {red: 0, green: 0, blue: 0};
+      var hp = hue / 60;
+      var x = chroma * (1 - Math.abs((hp % 2) - 1));
+      switch (Math.floor(hp)) {
+        case 0:
+          faceColor.red = chroma;
+          faceColor.green = x;
+          break;
 
+        case 1:
+          faceColor.red = x;
+          faceColor.green = chroma;
+          break;
+
+        case 2:
+          faceColor.green = chroma;
+          faceColor.blue = x;
+          break;
+
+        case 3:
+          faceColor.green = x;
+          faceColor.blue = chroma;
+          break;
+
+        case 4:
+          faceColor.red = x;
+          faceColor.green = chroma;
+          break;
+
+        case 5:
+        case 6:
+          faceColor.red = chroma;
+          faceColor.green = x;
+          break;
+      }
+
+      var m = brightness - chroma;
+      var color = {
+        red: Math.floor((faceColor.red + m) * 256),
+        green: Math.floor((faceColor.green + m) * 256),
+        blue: Math.floor((faceColor.blue + m) * 256)
+      };
+
+      var hex = {
+        red: (color.red < 16 ? '0' : '') + Number(color.red).toString(16),
+        green: (color.green < 16 ? '0' : '') + Number(color.green).toString(16),
+        blue: (color.blue < 16 ? '0' : '') + Number(color.blue).toString(16)
+      };
+
+      return hex.red + hex.green + hex.blue;
+    }
+  };
 }(jQuery));
