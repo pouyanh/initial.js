@@ -1,6 +1,6 @@
 {
   "name": "initial.js",
-  "main": "dist/initial.min.js",
+  "main": "initial.js",
   "version": "0.5.0",
   "homepage": "https://github.com/pouyanh/initial.js",
   "authors": [
