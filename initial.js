@@ -44,8 +44,8 @@
 
       // var sigma = unique(settings.name) * (settings.seed + 1) * 2 * Math.PI;
       var sigma = unique(settings.name);
-      // var hue = (360 + (distribute(sigma, settings.name.length) * 360) - 150) % 360;
-      var hue = sigma * 360;
+      var hue = (360 + (distribute(sigma * 2 * Math.PI, settings.name.length) * 360) - 140) % 360;
+      // var hue = sigma * 360;
       // console.log('Hue for ', settings.name, hue);
 
       var bgColor = {
